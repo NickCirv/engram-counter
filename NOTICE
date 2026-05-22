@@ -1,0 +1,20 @@
+engram-counter
+Copyright (c) 2026 Nicholas Ashkar / CirvGreen
+
+Licensed under the Apache License, Version 2.0 (the "License").
+You may obtain a copy of the License at:
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+The cryptographic methodology described in this software — JCS canonicalization
+per RFC 8785 + SHA-256 hashing pattern for tamper-evident audit attestation,
+including the workload-fingerprint cross-check, the two-layer envelope pattern,
+and the integer basis-point percentage math — is offered under the same Apache
+License 2.0 patent grant.
+
+This software incorporates JSON Canonicalization Scheme (JCS) per RFC 8785,
+published by the Internet Engineering Task Force (IETF). RFC 8785 is informational
+and not subject to copyright restrictions for implementation.
+
+This NOTICE file is required by Apache License 2.0 §4(d) for any redistribution
+or derivative work.

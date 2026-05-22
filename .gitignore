@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.local
+coverage/
+.nyc_output/
+.tsbuildinfo
+*.tgz
+.vscode/
+.idea/
+
+# Local-only tooling — never push to public surface
+.claude/
+.engram/

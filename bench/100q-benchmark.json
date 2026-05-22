@@ -1,0 +1,117 @@
+{
+  "envelope": {
+    "computed_at": "2026-05-21T14:33:12.417Z",
+    "audit_id": "audit-100q-flagship-bench",
+    "reproducible_mode": true,
+    "ingestion_contract": "v1",
+    "_type": "https://in-toto.io/Statement/v1",
+    "predicateType": "https://cirvgreen.com/engram-counter/Attestation/v1",
+    "schema_url": "https://raw.githubusercontent.com/NickCirv/engram-counter/main/schemas/ingestion-contract-v1.schema.json"
+  },
+  "audit_trail_hash": "sha256:b0f8e4030dcfb91c27a3faf647e8fe061cbfd67bb707671d5331e8186b518819",
+  "audit": {
+    "version": "0.1.0",
+    "counter_version": "0.0.1",
+    "mode": "dev",
+    "methodology": "paired-run",
+    "inputs": {
+      "baseline_file": "tests/fixtures/baseline-100q.jsonl",
+      "baseline_sha256": "sha256:90028c0310046201b6200f7664eecc122376e4024bebf81fb81dcfb0286b3049",
+      "active_file": "tests/fixtures/active-100q.jsonl",
+      "active_sha256": "sha256:393d501f577fa81e601aae9759bdd01b58f056501b5ee3951bafe255dec3f160",
+      "bom_stripped": false
+    },
+    "counts": {
+      "baseline_entries": 100,
+      "active_entries": 100,
+      "matched_queries": 100,
+      "baseline_only_queries": 0,
+      "active_only_queries": 0
+    },
+    "tokens": {
+      "baseline_sent_total": 2577856,
+      "active_sent_total": 293987,
+      "saved_sent": 2283869,
+      "baseline_received_total": 101595,
+      "active_received_total": 95846,
+      "saved_received": 5749,
+      "baseline_total": 2679451,
+      "active_total": 389833,
+      "saved_total": 2289618,
+      "saved_pct": 85.45
+    },
+    "cost_usd": null,
+    "per_workload": {
+      "debug": {
+        "matched_queries": 22,
+        "baseline_total": 355935,
+        "active_total": 40357,
+        "saved_total": 315578,
+        "saved_pct": 88.66
+      },
+      "doc_lookup": {
+        "matched_queries": 14,
+        "baseline_total": 128101,
+        "active_total": 31824,
+        "saved_total": 96277,
+        "saved_pct": 75.15
+      },
+      "feature_add": {
+        "matched_queries": 24,
+        "baseline_total": 943109,
+        "active_total": 151884,
+        "saved_total": 791225,
+        "saved_pct": 83.89
+      },
+      "refactor": {
+        "matched_queries": 28,
+        "baseline_total": 1026713,
+        "active_total": 133429,
+        "saved_total": 893284,
+        "saved_pct": 87
+      },
+      "test_writing": {
+        "matched_queries": 12,
+        "baseline_total": 225593,
+        "active_total": 32339,
+        "saved_total": 193254,
+        "saved_pct": 85.66
+      }
+    },
+    "fingerprint": {
+      "baseline_workloads": "sha256:4a9900c596af848e0c4a65ea6b303bfde92908f4e1c6ca51781c62a0cff0b919",
+      "active_workloads": "sha256:4a9900c596af848e0c4a65ea6b303bfde92908f4e1c6ca51781c62a0cff0b919",
+      "fingerprint_match": true,
+      "fingerprint_reason": "ok",
+      "count_per_workload": {
+        "refactor": {
+          "baseline": 28,
+          "active": 28
+        },
+        "feature_add": {
+          "baseline": 24,
+          "active": 24
+        },
+        "debug": {
+          "baseline": 22,
+          "active": 22
+        },
+        "doc_lookup": {
+          "baseline": 14,
+          "active": 14
+        },
+        "test_writing": {
+          "baseline": 12,
+          "active": 12
+        }
+      }
+    },
+    "thresholds": {
+      "workload_absent_fail_closed": 0.01,
+      "mismatch_warn": 0.1,
+      "mismatch_high": 0.5,
+      "count_skew_warn": 0.5
+    },
+    "warnings": []
+  }
+}

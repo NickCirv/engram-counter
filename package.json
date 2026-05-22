@@ -1,0 +1,75 @@
+{
+  "name": "engram-counter",
+  "version": "0.0.1",
+  "description": "Open-source AI token savings audit primitive (scaffold v0.0.x; v0.1.0 ships first production release). Apache 2.0. Tamper-evident JCS-canonicalized SHA-256 attestations over paired-run logs. Zero runtime dependencies.",
+  "keywords": [
+    "ai",
+    "finops",
+    "savings",
+    "audit",
+    "tokens",
+    "llm",
+    "tamper-evident",
+    "jcs",
+    "rfc8785",
+    "sigstore",
+    "engramx"
+  ],
+  "homepage": "https://github.com/NickCirv/engram-counter",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NickCirv/engram-counter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NickCirv/engram-counter/issues"
+  },
+  "author": {
+    "name": "Nicholas Ashkar",
+    "email": "nick@cirvgreen.com",
+    "url": "https://cirvgreen.com/engram"
+  },
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "engram-counter": "./bin/engram-counter.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "schemas",
+    "bench",
+    "tests/fixtures/baseline-100q.jsonl",
+    "tests/fixtures/active-100q.jsonl",
+    "tests/fixtures/baseline-10q.jsonl",
+    "tests/fixtures/active-10q.jsonl",
+    "scripts/generate-fixture.js",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:coverage": "echo 'coverage tooling configured in v0.1.0 build phase'",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test",
+    "test:watch": "tsx --test --watch tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3"
+  }
+}

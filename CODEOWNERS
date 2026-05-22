@@ -1,0 +1,19 @@
+# engram-counter — code owners
+
+# Everything: Nick (sole maintainer at v0.0.x)
+*                              @NickCirv
+
+# Source code, tests, types — require Nick approval on PRs (when branch protection enabled)
+/src/                          @NickCirv
+/tests/                        @NickCirv
+
+# CI/CD, security-sensitive workflows
+/.github/                      @NickCirv
+/SECURITY.md                   @NickCirv
+/NOTICE                        @NickCirv
+/LICENSE                       @NickCirv
+
+# Package surface — published to npm; high blast radius
+/package.json                  @NickCirv
+/package-lock.json             @NickCirv
+/tsconfig.json                 @NickCirv

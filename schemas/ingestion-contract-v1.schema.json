@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/NickCirv/engram-counter/main/schemas/ingestion-contract-v1.schema.json",
+  "title": "engram-counter Ingestion Contract v1",
+  "description": "Frozen schema for engram-counter audit output. Aligned with in-toto Statement v1 envelope pattern. Backward-compatible additions allowed within v1; breaking changes require contract v2.",
+
+  "type": "object",
+  "required": ["envelope", "audit_trail_hash", "audit"],
+  "additionalProperties": false,
+
+  "properties": {
+    "envelope": { "$ref": "#/$defs/Envelope" },
+    "audit_trail_hash": { "$ref": "#/$defs/Sha256Hex" },
+    "audit": { "$ref": "#/$defs/AuditBlock" }
+  },
+
+  "$defs": {
+    "Sha256Hex": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 hash with `sha256:` prefix per SPEC §Hash-algorithm agility"
+    },
+
+    "Envelope": {
+      "type": "object",
+      "description": "Outer envelope — presentation metadata, NOT included in audit_trail_hash",
+      "required": [
+        "computed_at",
+        "audit_id",
+        "reproducible_mode",
+        "ingestion_contract",
+        "_type",
+        "predicateType",
+        "schema_url"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "computed_at": { "type": "string", "format": "date-time" },
+        "audit_id": { "type": "string", "minLength": 1 },
+        "reproducible_mode": { "type": "boolean" },
+        "ingestion_contract": { "const": "v1" },
+        "_type": { "const": "https://in-toto.io/Statement/v1" },
+        "predicateType": { "const": "https://cirvgreen.com/engram-counter/Attestation/v1" },
+        "schema_url": { "type": "string", "format": "uri" }
+      }
+    },
+
+    "AuditBlock": {
+      "type": "object",
+      "description": "Inner canonical audit data — JCS-canonicalized + SHA-256 hashed into audit_trail_hash",
+      "required": [
+        "version",
+        "counter_version",
+        "mode",
+        "methodology",
+        "inputs",
+        "counts",
+        "tokens",
+        "cost_usd",
+        "per_workload",
+        "fingerprint",
+        "thresholds",
+        "warnings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string" },
+        "counter_version": { "type": "string" },
+        "binary_sha256": { "$ref": "#/$defs/Sha256Hex" },
+        "mode": { "enum": ["strict", "dev"] },
+        "methodology": { "const": "paired-run" },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "baseline_file",
+            "baseline_sha256",
+            "active_file",
+            "active_sha256",
+            "bom_stripped"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "baseline_file": { "type": "string" },
+            "baseline_sha256": { "$ref": "#/$defs/Sha256Hex" },
+            "active_file": { "type": "string" },
+            "active_sha256": { "$ref": "#/$defs/Sha256Hex" },
+            "bom_stripped": { "type": "boolean" }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "baseline_entries",
+            "active_entries",
+            "matched_queries",
+            "baseline_only_queries",
+            "active_only_queries"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "baseline_entries": { "type": "integer", "minimum": 0 },
+            "active_entries": { "type": "integer", "minimum": 0 },
+            "matched_queries": { "type": "integer", "minimum": 0 },
+            "baseline_only_queries": { "type": "integer", "minimum": 0 },
+            "active_only_queries": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "tokens": {
+          "type": "object",
+          "required": [
+            "baseline_sent_total",
+            "active_sent_total",
+            "saved_sent",
+            "baseline_received_total",
+            "active_received_total",
+            "saved_received",
+            "baseline_total",
+            "active_total",
+            "saved_total",
+            "saved_pct"
+          ],
+          "properties": {
+            "baseline_sent_total": { "type": "integer" },
+            "active_sent_total": { "type": "integer" },
+            "saved_sent": { "type": "integer" },
+            "baseline_received_total": { "type": "integer" },
+            "active_received_total": { "type": "integer" },
+            "saved_received": { "type": "integer" },
+            "baseline_total": { "type": "integer" },
+            "active_total": { "type": "integer" },
+            "saved_total": { "type": "integer" },
+            "saved_pct": { "type": "number" }
+          }
+        },
+        "cost_usd": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "per_workload": {
+          "type": "object",
+          "patternProperties": {
+            "^.+$": {
+              "type": "object",
+              "required": ["matched_queries", "baseline_total", "active_total", "saved_total", "saved_pct"],
+              "properties": {
+                "matched_queries": { "type": "integer", "minimum": 0 },
+                "baseline_total": { "type": "integer" },
+                "active_total": { "type": "integer" },
+                "saved_total": { "type": "integer" },
+                "saved_pct": { "type": "number" }
+              }
+            }
+          }
+        },
+        "fingerprint": {
+          "type": "object",
+          "required": ["baseline_workloads", "active_workloads", "fingerprint_match", "fingerprint_reason", "count_per_workload"],
+          "additionalProperties": false,
+          "properties": {
+            "baseline_workloads": { "$ref": "#/$defs/Sha256Hex" },
+            "active_workloads": { "$ref": "#/$defs/Sha256Hex" },
+            "fingerprint_match": { "type": ["boolean", "null"] },
+            "fingerprint_reason": { "enum": ["ok", "workload_field_absent", "set_mismatch", "count_skew"] },
+            "count_per_workload": {
+              "type": "object",
+              "patternProperties": {
+                "^.+$": {
+                  "type": "object",
+                  "required": ["baseline", "active"],
+                  "properties": {
+                    "baseline": { "type": "integer", "minimum": 0 },
+                    "active": { "type": "integer", "minimum": 0 }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "thresholds": {
+          "type": "object",
+          "required": ["workload_absent_fail_closed", "mismatch_warn", "mismatch_high", "count_skew_warn"],
+          "properties": {
+            "workload_absent_fail_closed": { "type": "number", "minimum": 0, "maximum": 1 },
+            "mismatch_warn": { "type": "number", "minimum": 0, "maximum": 1 },
+            "mismatch_high": { "type": "number", "minimum": 0, "maximum": 1 },
+            "count_skew_warn": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Warning" }
+        }
+      }
+    },
+
+    "Warning": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "low_mismatch_within_tolerance",
+            "partial_audit_warning",
+            "very_high_mismatch_rate",
+            "workload_field_absent",
+            "fingerprint_set_mismatch",
+            "fingerprint_count_skew",
+            "bom_stripped",
+            "malformed_jsonl_line",
+            "parser_limit_exceeded",
+            "unicode_line_terminator_normalized",
+            "negative_token_clamped",
+            "duplicate_query_id",
+            "sample_size_below_recommended_minimum"
+          ]
+        },
+        "message": { "type": "string" },
+        "context": { "type": "object" }
+      }
+    }
+  }
+}

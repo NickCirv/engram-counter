@@ -1,0 +1,10 @@
+{"query_id":"q_001","timestamp":"2026-05-21T10:00:00Z","tokens_sent":50000,"tokens_received":2000,"workload":"refactor"}
+{"query_id":"q_002","timestamp":"2026-05-21T10:00:10Z","tokens_sent":48000,"tokens_received":1800,"workload":"refactor"}
+{"query_id":"q_003","timestamp":"2026-05-21T10:00:20Z","tokens_sent":52000,"tokens_received":2200,"workload":"refactor"}
+{"query_id":"q_004","timestamp":"2026-05-21T10:00:30Z","tokens_sent":30000,"tokens_received":1500,"workload":"debug"}
+{"query_id":"q_005","timestamp":"2026-05-21T10:00:40Z","tokens_sent":32000,"tokens_received":1600,"workload":"debug"}
+{"query_id":"q_006","timestamp":"2026-05-21T10:00:50Z","tokens_sent":28000,"tokens_received":1400,"workload":"debug"}
+{"query_id":"q_007","timestamp":"2026-05-21T10:01:00Z","tokens_sent":70000,"tokens_received":3000,"workload":"feature_add"}
+{"query_id":"q_008","timestamp":"2026-05-21T10:01:10Z","tokens_sent":72000,"tokens_received":3100,"workload":"feature_add"}
+{"query_id":"q_009","timestamp":"2026-05-21T10:01:20Z","tokens_sent":68000,"tokens_received":2900,"workload":"feature_add"}
+{"query_id":"q_010","timestamp":"2026-05-21T10:01:30Z","tokens_sent":71000,"tokens_received":3050,"workload":"feature_add"}

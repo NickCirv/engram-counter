@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# Required for Sigstore --provenance attestation via OIDC
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Verify dist/ ships
+        run: |
+          test -f dist/index.js || (echo "FAIL: dist/index.js missing after build" && exit 1)
+          test -f dist/counter.js || (echo "FAIL: dist/counter.js missing after build" && exit 1)
+          test -f dist/types.js || (echo "FAIL: dist/types.js missing after build" && exit 1)
+
+  publish:
+    name: Publish to npm with provenance
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Verify npm pack contents include dist/
+        run: |
+          npm pack --dry-run 2>&1 | tee /tmp/pack.log
+          grep -q "dist/index.js" /tmp/pack.log || (echo "FAIL: dist/index.js not in tarball" && exit 1)
+          grep -q "dist/counter.js" /tmp/pack.log || (echo "FAIL: dist/counter.js not in tarball" && exit 1)
+      - name: Generate CycloneDX SBOM
+        run: |
+          npx --yes @cyclonedx/cyclonedx-npm@^2 --output-file engram-counter.cdx.json --output-format JSON --spec-version 1.6
+          ls -la engram-counter.cdx.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: engram-counter-sbom
+          path: engram-counter.cdx.json
+      - name: Publish with Sigstore provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+  release-notes:
+    name: Generate GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compute binary SHA-256
+        id: bin-sha
+        run: |
+          if [ -f bin/engram-counter.js ]; then
+            SHA=$(shasum -a 256 bin/engram-counter.js | awk '{print $1}')
+            printf 'binary_sha256=%s\n' "$SHA" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+          BIN_SHA: ${{ steps.bin-sha.outputs.binary_sha256 }}
+        run: |
+          NOTES=$(printf '## Release %s\n\nSee [CHANGELOG.md](./CHANGELOG.md) for details.\n\n### Binary SHA-256 (for --strict mode verification)\n`bin/engram-counter.js` SHA-256: `%s`\n\nCross-check this hash against the `binary_sha256` value in any audit produced in --strict mode.\n' "$TAG_NAME" "$BIN_SHA")
+          gh release create "$TAG_NAME" --title "engram-counter $TAG_NAME" --notes "$NOTES"
