@@ -1,6 +1,6 @@
 {
   "name": "engram-counter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Open-source AI token savings audit primitive. Apache 2.0. Tamper-evident JCS-canonicalized SHA-256 attestations over paired-run logs. Zero runtime dependencies.",
   "keywords": [
     "ai",

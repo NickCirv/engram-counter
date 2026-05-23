@@ -4,6 +4,17 @@ All notable changes to `engram-counter` are documented in this file. Format foll
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-05-23
+
+Patch release: documentation correctness + CI portability.
+
+### Fixed
+- **docs(README):** CLI invocation examples drop the unsupported `audit` positional argument. Correct form is `engram-counter --baseline X --active Y` (no subcommand). Caught by post-publish smoke test against the @0.1.0 npm tarball from a clean directory — first users hitting the README would have seen `[ERROR] Unexpected positional argument: "audit"`.
+- **ci(workflow):** `npm test` script glob portability. The previous `tests/**/*.test.ts` relied on `globstar` (zsh default, not bash default). Ubuntu bash on GitHub Actions runners passed the literal string to tsx, breaking the workflow's test step. Changed to `tests/*.test.ts` (all test files are in `tests/` directly, no subdirs).
+
+### Behavior
+No source code, schema, audit semantics, or golden hash changes. `audit_trail_hash` reproducibility contract is unchanged from v0.1.0.
+
 ## [0.1.0] — 2026-05-22
 
 First production release. Single squashed commit on `main` (`2e90a93`).
@@ -185,5 +196,6 @@ Procurement teams evaluating AI vendor savings claims need a way to verify those
 - Repository structure per SPEC v0.1.2 (src, tests, bin, docs, examples, .github)
 - v0.1.0 spec finalized after formal multi-reviewer audit (CONDITIONAL_PASS aggregate verdict, 6 P0 fixes applied to SPEC v0.1.2 before code starts)
 
-[Unreleased]: https://github.com/NickCirv/engram-counter/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/NickCirv/engram-counter/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/NickCirv/engram-counter/releases/tag/v0.1.1
 [0.1.0]: https://github.com/NickCirv/engram-counter/releases/tag/v0.1.0

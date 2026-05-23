@@ -32,7 +32,7 @@ Verify it yourself in three commands — see `bench/100q-summary.md`.
 
 ## What it does
 
-`engram-counter audit --baseline baseline.jsonl --active active.jsonl` produces a deterministic JSON output containing:
+`engram-counter --baseline baseline.jsonl --active active.jsonl` produces a deterministic JSON output containing:
 
 - Per-query, per-workload, and aggregate token savings
 - SHA-256 hashes of both input files (over raw bytes)
@@ -81,7 +81,7 @@ cd engram-counter
 git checkout v0.1.0   # or the specific tag you want to audit
 npm ci
 npm run build
-./bin/engram-counter audit --baseline baseline.jsonl --active active.jsonl
+./bin/engram-counter --baseline baseline.jsonl --active active.jsonl
 ```
 
 Every published release also includes:
