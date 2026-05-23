@@ -4,6 +4,10 @@ All notable changes to `engram-counter` are documented in this file. Format foll
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-05-22
+
+First production release. Single squashed commit on `main` (`2e90a93`).
+
 ### Added — v0.1.0 ship documentation (2026-05-21)
 - `docs/methodology.md` (~250 lines) — procurement-grade methodology document covering:
   - 11-row threat model (vendor inflation / fork modification / customer manipulation / JSONL smuggling / fingerprint forgery / BOM grinding / no-evidence audit / audit_id forgery)
@@ -181,5 +185,5 @@ Procurement teams evaluating AI vendor savings claims need a way to verify those
 - Repository structure per SPEC v0.1.2 (src, tests, bin, docs, examples, .github)
 - v0.1.0 spec finalized after formal multi-reviewer audit (CONDITIONAL_PASS aggregate verdict, 6 P0 fixes applied to SPEC v0.1.2 before code starts)
 
-[Unreleased]: https://github.com/NickCirv/engram-counter/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/NickCirv/engram-counter/releases/tag/v0.0.1
+[Unreleased]: https://github.com/NickCirv/engram-counter/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/NickCirv/engram-counter/releases/tag/v0.1.0

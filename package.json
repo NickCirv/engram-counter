@@ -1,7 +1,7 @@
 {
   "name": "engram-counter",
-  "version": "0.0.1",
-  "description": "Open-source AI token savings audit primitive (scaffold v0.0.x; v0.1.0 ships first production release). Apache 2.0. Tamper-evident JCS-canonicalized SHA-256 attestations over paired-run logs. Zero runtime dependencies.",
+  "version": "0.1.0",
+  "description": "Open-source AI token savings audit primitive. Apache 2.0. Tamper-evident JCS-canonicalized SHA-256 attestations over paired-run logs. Zero runtime dependencies.",
   "keywords": [
     "ai",
     "finops",
@@ -57,7 +57,7 @@
   "scripts": {
     "build": "tsc",
     "test": "tsx --test tests/**/*.test.ts",
-    "test:coverage": "echo 'coverage tooling configured in v0.1.0 build phase'",
+    "test:coverage": "echo 'coverage tooling will land in v0.2'",
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm test",
     "test:watch": "tsx --test --watch tests/**/*.test.ts",
