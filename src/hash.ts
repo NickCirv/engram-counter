@@ -28,6 +28,7 @@ import {
 import type {
   AuditBlock,
   AuditOutput,
+  CostAggregates,
   Counts,
   Envelope,
   PerWorkloadResult,
@@ -247,6 +248,12 @@ export interface BuildAuditInput {
   fingerprint: WorkloadFingerprint;
   thresholds: Thresholds;
   warnings: Warning[];
+  /**
+   * v0.2 — Optional cache-aware cost aggregate. When provided, included in
+   * the AuditBlock; when absent, the AuditBlock omits the `cost` field
+   * (preserving v0.1.x hash byte-identity per JCS canonicalization).
+   */
+  cost?: CostAggregates;
 }
 
 /**
@@ -272,6 +279,11 @@ export function buildAuditBlock(input: BuildAuditInput): AuditBlock {
   };
   if (input.binary_sha256 !== undefined) {
     block.binary_sha256 = input.binary_sha256;
+  }
+  // v0.2 — conditionally include cost block. Absent input.cost → field omitted
+  // from JCS canonical form → v0.1.x audit hashes preserved byte-identically.
+  if (input.cost !== undefined) {
+    block.cost = input.cost;
   }
   return block;
 }

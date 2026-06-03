@@ -400,6 +400,48 @@ function parseLine(
   if (typeof obj["model"] === "string") entry.model = obj["model"];
   if (typeof obj["provider"] === "string") entry.provider = obj["provider"];
   if (typeof obj["dev_id"] === "string") entry.dev_id = obj["dev_id"];
+
+  // v0.2 — optional cache fields. Strict-when-present (reject if invalid),
+  // absent → undefined (consumer defaults to 0 for FinOps cost calc).
+  // Validation mirrors tokens_sent rules: number + finite + integer + non-negative + ≤MAX_SAFE_INTEGER.
+  const rawCacheRead = obj["cache_read_tokens"];
+  if (rawCacheRead !== undefined) {
+    if (
+      typeof rawCacheRead !== "number" ||
+      !Number.isFinite(rawCacheRead) ||
+      !Number.isInteger(rawCacheRead) ||
+      rawCacheRead < 0 ||
+      rawCacheRead > Number.MAX_SAFE_INTEGER
+    ) {
+      return {
+        warning: makeWarning(
+          "malformed_jsonl_line",
+          `Line ${lineNum} has invalid cache_read_tokens (must be non-negative integer ≤ MAX_SAFE_INTEGER)`,
+          { line_num: lineNum },
+        ),
+      };
+    }
+    entry.cache_read_tokens = rawCacheRead;
+  }
+  const rawCacheCreate = obj["cache_creation_tokens"];
+  if (rawCacheCreate !== undefined) {
+    if (
+      typeof rawCacheCreate !== "number" ||
+      !Number.isFinite(rawCacheCreate) ||
+      !Number.isInteger(rawCacheCreate) ||
+      rawCacheCreate < 0 ||
+      rawCacheCreate > Number.MAX_SAFE_INTEGER
+    ) {
+      return {
+        warning: makeWarning(
+          "malformed_jsonl_line",
+          `Line ${lineNum} has invalid cache_creation_tokens (must be non-negative integer ≤ MAX_SAFE_INTEGER)`,
+          { line_num: lineNum },
+        ),
+      };
+    }
+    entry.cache_creation_tokens = rawCacheCreate;
+  }
   if (
     obj["metadata"] !== undefined &&
     obj["metadata"] !== null &&

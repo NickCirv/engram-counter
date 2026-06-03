@@ -2,7 +2,7 @@
 
 > **What this is:** A synthetic 100-query JSONL fixture that exercises engram-counter's complete pipeline (parser → counter → fingerprint → hash). It produces a known `audit_trail_hash` that any third party can independently reproduce.
 >
-> **What this is NOT:** A measurement of engramx itself. The real-workload 89.1% savings claim from engramx v4.0 was measured on actual coding sessions and is documented separately. This 100q fixture measures **engram-counter's correct behavior**, not engram's actual savings.
+> **What this is NOT:** A measurement of engramx itself. This 100q fixture is **synthetic** and measures **engram-counter's correct behavior** — that it produces a deterministic, tamper-evident hash on a known input — not engram's savings. engram-counter makes no savings claim of its own; the only number that matters is the one it computes on your real logs.
 
 ---
 
@@ -18,9 +18,9 @@
 | fingerprint_match | true (set-mismatch defense passes) |
 | **audit_trail_hash** | `sha256:b0f8e4030dcfb91c27a3faf647e8fe061cbfd67bb707671d5331e8186b518819` |
 
-**Cost projection at $5/M tokens (Anthropic Sonnet typical pricing):** **$11.45 saved per session.**
+**Cost projection at $5/M tokens** (illustrative — what the tool computes from *this synthetic fixture's* numbers, not a real-world claim): $11.45 for the fixture. Your real figure comes from your own logs.
 
-At enterprise scale (100 devs × 1 session/day × 365 days): **~$418K annual savings** purely from this synthetic workload mix.
+*(Extrapolating a synthetic fixture to an annual org-wide dollar figure would be exactly the unverifiable claim this tool exists to replace — so we don't. Run it on your real logs for a number that means something.)*
 
 ---
 
@@ -107,11 +107,9 @@ Expected: `11.4481`
 
 ---
 
-## The honest framing for procurement
+## What this fixture is (and is not)
 
-> "engramx v4.0 measured 89.1% token savings on real coding sessions (documented in v4.0 release notes). engram-counter is the Apache 2.0 OSS tool that *verifies* those measurements — anyone can recompute them. The 100q fixture in this repository exists so you can verify engram-counter itself produces a deterministic, tamper-evident `audit_trail_hash` on a known input. The 85.45% saved_pct here is the synthetic fixture's behavior, not a claim about engram's real-world performance."
-
-This is the line we'll deliver in procurement calls when asked "is this a real benchmark?"
+> "engram-counter is the Apache 2.0 OSS tool that lets anyone recompute a savings claim from raw logs and get a deterministic, tamper-evident `audit_trail_hash`. The 100q fixture in this repository is **synthetic** — it exists so you can verify engram-counter itself behaves deterministically on a known input. The 85.45% saved_pct here is the synthetic fixture's behavior, **not** a claim about engram's real-world performance. engram-counter makes no savings claim of its own — it measures whatever number your real logs produce."
 
 ---
 

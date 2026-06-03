@@ -2,7 +2,17 @@
 
 All notable changes to `engram-counter` are documented in this file. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] — 2026-06-01 — "Cache-Aware Cost Accounting"
+
+### Added (v0.2 — cache-aware cost accounting)
+- **`pricing.ts`:** frozen Anthropic pricing snapshot (`PRICING_2026_05` — Sonnet/Opus/Haiku rates + 0.1× cache-read / 1.25× cache-create multipliers), `calculateCost()`, `resolvePricing()`, `PRICING_VERSION` stamp for reproducibility.
+- **Cache fields on log rows:** optional `cache_read_tokens` + `cache_creation_tokens` (strict-when-present validation: non-negative integer ≤ MAX_SAFE_INTEGER, else line rejected). v0.1.x JSONL without these fields parses unchanged.
+- **`aggregateCost()`:** FinOps-correct cost aggregate priced **per row by its own `model` field** (mixed-model JSONL priced correctly per row; provenance reports `"mixed"` when rows span models; throws loudly on an unknown model rather than silently mis-pricing). Computes `saved_cost_usd`/`saved_pct` from raw accumulators (no double-rounding); 4dp rounding for cross-platform JCS hash stability.
+- **Optional `cost` block on the audit:** emitted when the JSONL has nonzero cache activity OR `--model` is passed. Carries `model` + `pricing_version` provenance so an auditor reproduces every USD figure from the open pricing table.
+- **CLI `--model <id>`:** validated against the pricing snapshot (fails loudly on a typo). Sets the default model for rows lacking a `model` field.
+
+### Behavior / back-compat
+- **v0.1.x audits are byte-identical:** a cacheless invocation with no `--model` emits NO cost block, so the `audit_trail_hash` matches what a v0.1.x binary produces. Proven by the existing v0.1 golden hashes (still passing) + a new v0.2 golden hash locking the cost-bearing attestation. 357 tests.
 
 ## [0.1.1] — 2026-05-23
 
@@ -74,9 +84,9 @@ First production release. Single squashed commit on `main` (`2e90a93`).
 
 ### Added — flagship 100q benchmark + golden hash + reproducibility (2026-05-21)
 - `scripts/generate-fixture.js` — deterministic LCG-seeded fixture generator (SEED=1729, Hardy-Ramanujan). Auditors can rerun to verify byte-identical fixtures.
-- `tests/fixtures/baseline-100q.jsonl` + `tests/fixtures/active-100q.jsonl` — committed 100-query paired JSONL across 5 workload categories (refactor 28% / feature_add 24% / debug 22% / doc_lookup 14% / test_writing 12%). Honest non-round saved_pct = **85.45%** (not curated to match engramx v4.0's 89.1% real-workload number).
+- `tests/fixtures/baseline-100q.jsonl` + `tests/fixtures/active-100q.jsonl` — committed 100-query paired JSONL across 5 workload categories (refactor 28% / feature_add 24% / debug 22% / doc_lookup 14% / test_writing 12%). Honest non-round saved_pct = **85.45%** — a SYNTHETIC fixture demonstrating the tool, not a claim about engram's savings.
 - `bench/100q-benchmark.json` — full AuditOutput committed as procurement-grade reproducibility artifact (3.4KB).
-- `bench/100q-summary.md` — human-readable summary with per-workload breakdown, cost projection ($5/M Anthropic Sonnet rate → $11.45 saved per session, $418K/year at 100-dev scale), reproduction instructions, AND the procurement-honest framing distinguishing engramx measurements from engram-counter verification.
+- `bench/100q-summary.md` — human-readable summary with per-workload breakdown, an illustrative cost projection on the synthetic fixture, reproduction instructions, AND framing that the fixture verifies engram-counter's behavior (engram-counter makes no savings claim of its own).
 - Integration test `tests/integration.test.ts` extends to 100q: matches all 100 queries, fingerprint across 5 workloads, byte-identical reproducibility, golden hash locked.
 - `package.json` `files[]` extended to ship `bench/` + `scripts/generate-fixture.js` in npm tarball.
 

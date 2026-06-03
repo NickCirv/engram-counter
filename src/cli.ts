@@ -25,10 +25,12 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { joinByQueryId, aggregateTokens, aggregateByWorkload, mismatchSeverity } from "./counter.js";
+import { joinByQueryId, aggregateTokens, aggregateByWorkload, aggregateCost, mismatchSeverity } from "./counter.js";
 import { parseJsonlFile, computeWorkloadFingerprint } from "./parser.js";
 import { buildAuditOutput, verifyAuditTrailHash } from "./hash.js";
 import { DEFAULT_THRESHOLDS, NullLogger } from "./types.js";
+import { PRICING_2026_05, DEFAULT_MODEL, PRICING_VERSION } from "./pricing.js";
+import type { CostAggregates } from "./types.js";
 import type {
   AuditBlock,
   AuditOutput,
@@ -85,6 +87,7 @@ export interface ParsedArgs {
   active?: string;
   audit_id?: string;
   cost_per_million?: number;
+  model?: string;
   no_binary_hash: boolean;
   workload_absent_fail_closed?: number;
   count_skew_warn?: number;
@@ -104,6 +107,7 @@ const FLAG_REQUIRES_VALUE = new Set([
   "--active",
   "--audit-id",
   "--cost-per-million",
+  "--model",
   "--workload-absent-fail-closed",
   "--count-skew-warn",
   "--mismatch-warn",
@@ -196,6 +200,20 @@ export function parseArgv(args: readonly string[]): ParsedArgs {
           }
           break;
         }
+        case "--model": {
+          // Validate against known pricing snapshot so a typo'd model fails
+          // loudly rather than silently falling back to DEFAULT_MODEL (which
+          // would mislead the cost figures).
+          if (!(next in PRICING_2026_05)) {
+            const known = Object.keys(PRICING_2026_05).join(", ");
+            parsed.errors.push(
+              `--model "${next}" is not a known model. Known: ${known}`,
+            );
+          } else {
+            parsed.model = next;
+          }
+          break;
+        }
         case "--workload-absent-fail-closed": {
           const n = parseNumber(next);
           if (n === undefined || n < 0 || n > 1) {
@@ -262,6 +280,7 @@ export interface ValidatedArgs {
   active: string;
   audit_id?: string;
   cost_per_million: number | null;
+  model: string | null;
   no_binary_hash: boolean;
   thresholds: Thresholds;
   baseline_file_label: string;
@@ -318,6 +337,7 @@ export function validateArgs(parsed: ParsedArgs): { ok: true; value: ValidatedAr
     baseline: parsed.baseline as string,
     active: parsed.active as string,
     cost_per_million: parsed.cost_per_million ?? null,
+    model: parsed.model ?? null,
     no_binary_hash: parsed.no_binary_hash,
     thresholds,
     baseline_file_label: parsed.baseline_file_label ?? (parsed.baseline as string),
@@ -569,6 +589,36 @@ export function runEngramCounter(
     cost_usd = (tokens.saved_total * validated.cost_per_million) / 1_000_000;
   }
 
+  // 5b. v0.2 — cache-aware cost block. Emitted when EITHER:
+  //   (a) the JSONL has cache fields (data demands FinOps-correct accounting), OR
+  //   (b) --model was explicitly passed (user opted into cost accounting).
+  // A vanilla v0.1.x invocation on v0.1.x data produces NO cost block →
+  // byte-identical hash to v0.1.x binaries (back-compat preserved).
+  let cost: CostAggregates | undefined;
+  // Gate on NONZERO cache activity (code-review fix 2026-05-30): a row carrying
+  // explicit `cache_read_tokens: 0` is economically identical to v0.1.x cacheless
+  // input, so it must NOT flip the emission gate and diverge the audit_trail_hash
+  // from what a v0.1.x binary produces. Real caching (nonzero) or an explicit
+  // --model still emits the cost block.
+  const hasCacheData = matched.some(
+    (m) =>
+      (m.baseline.cache_read_tokens ?? 0) > 0 ||
+      (m.baseline.cache_creation_tokens ?? 0) > 0 ||
+      (m.active.cache_read_tokens ?? 0) > 0 ||
+      (m.active.cache_creation_tokens ?? 0) > 0,
+  );
+  if (hasCacheData || validated.model !== null) {
+    const modelId = validated.model ?? DEFAULT_MODEL;
+    // Pass the full pricing SNAPSHOT so aggregateCost prices each row by its
+    // OWN model field (per-row fix). --model sets only the DEFAULT for rows
+    // that lack a model field; mixed-model JSONL is priced correctly per row
+    // and provenance reports "mixed".
+    cost = aggregateCost(matched, PRICING_2026_05, {
+      defaultModel: modelId,
+      pricing_version: PRICING_VERSION,
+    });
+  }
+
   // 6. Collect all warnings (parser baseline + active + fingerprint)
   const warnings: Warning[] = [
     ...b.value.warnings,
@@ -604,6 +654,9 @@ export function runEngramCounter(
 
   if (options.binary_sha256 !== undefined) {
     input.binary_sha256 = options.binary_sha256;
+  }
+  if (cost !== undefined) {
+    input.cost = cost;
   }
 
   // 8. Build output (JCS + SHA-256)
@@ -650,7 +703,11 @@ REQUIRED:
 
 OPTIONS:
   --audit-id <string>          Explicit audit_id (enables reproducible_mode)
-  --cost-per-million <number>  Compute cost_usd from saved tokens
+  --cost-per-million <number>  Compute naive cost_usd from saved tokens (v0.1)
+  --model <id>                 Model for cache-aware cost block (v0.2).
+                               Known: claude-sonnet-4-6, claude-opus-4-7,
+                               claude-haiku-4-5. The cost block is also emitted
+                               automatically when the JSONL has cache fields.
   --no-binary-hash             Skip binary_sha256 (mode="dev"; default is "strict")
   --workload-absent-fail-closed <ratio>   Fail-closed threshold (default 0.01)
   --count-skew-warn <ratio>    Count skew warn threshold (default 0.5)

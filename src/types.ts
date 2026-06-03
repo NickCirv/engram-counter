@@ -210,6 +210,19 @@ export interface LogEntry {
   provider?: string;
   dev_id?: string;
   metadata?: Record<string, unknown>;
+  /**
+   * Tokens served from Anthropic prompt cache (charged at 0.1× input rate).
+   * Optional — v0.1.x JSONL files have no cache fields; v0.2 treats absent as 0.
+   * If present, must be a non-negative integer ≤ Number.MAX_SAFE_INTEGER.
+   * Required for cost_saved_pct accuracy when caching is active.
+   */
+  cache_read_tokens?: number;
+  /**
+   * Tokens written to Anthropic prompt cache (charged at 1.25× input rate
+   * for the default 5-minute TTL). Optional — same back-compat rules as
+   * cache_read_tokens above. Required for FinOps-correct cost calc.
+   */
+  cache_creation_tokens?: number;
 }
 
 /** A paired query: baseline + active log entries with matching query_id. */
@@ -251,6 +264,46 @@ export interface PerWorkloadResult {
   active_total: number;
   saved_total: number;
   saved_pct: number;
+}
+
+/**
+ * v0.2 — Aggregate cost (USD) across matched queries.
+ *
+ * Mirrors TokenAggregates but in dollars, with cache-aware pricing.
+ * Pure-additive: v0.1.x AuditBlock keeps its naive cost_usd; this richer
+ * structure is what v0.2 attaches when JSONL rows have cache fields.
+ *
+ * Precision: USD float rounded to 4 decimal places at boundary (covers all
+ * realistic procurement scenarios without float-drift hash instability).
+ * Cents-precision (2dp) is sufficient for marketing display; 4dp leaves
+ * headroom for fractional-cent rates without losing information.
+ */
+export interface CostAggregates {
+  /**
+   * Pricing provenance — the model SKU whose rates were applied. Procurement
+   * auditors need this to reproduce the cost figures. Defaults to the
+   * DEFAULT_MODEL constant when no per-audit model is specified.
+   */
+  model: string;
+  /**
+   * Pricing snapshot identifier (e.g. "anthropic-2026-05"). Frozen in
+   * pricing.ts. An auditor pairs this with the open-source pricing table to
+   * recompute every USD figure below from the token counts — that's what
+   * makes the cost claim independently verifiable.
+   */
+  pricing_version: string;
+  /** Sum of cost across all baseline rows, USD. */
+  baseline_cost_usd: number;
+  /** Sum of cost across all active rows, USD. */
+  active_cost_usd: number;
+  /** baseline - active. Negative = cost increase (regression). */
+  saved_cost_usd: number;
+  /** (saved / baseline) × 100, 2-dp. Zero if baseline is zero. */
+  saved_pct: number;
+  /** Total cache_read_tokens across BOTH baseline + active rows. */
+  cache_read_total: number;
+  /** Total cache_creation_tokens across BOTH baseline + active rows. */
+  cache_creation_total: number;
 }
 
 /** Severity tier for query mismatch tolerance per v0.1.3 F8 (three-tier exit codes). */
@@ -315,6 +368,17 @@ export interface AuditBlock {
   fingerprint: WorkloadFingerprint;
   thresholds: Thresholds;
   warnings: Warning[]; // v0.1.5 — structured (was string[] in v0.1.4) per architect P0
+  /**
+   * v0.2 — Cache-aware FinOps cost aggregate. OPTIONAL for back-compat:
+   * absent for v0.1.x JSONL inputs (no cache fields), present for v0.2+
+   * JSONL inputs that include cache_read_tokens / cache_creation_tokens.
+   *
+   * Hash semantics: JCS canonicalizer omits absent keys, so v0.1.x audits
+   * produce the SAME hash whether computed by v0.1.x or v0.2+ binary.
+   * v0.2 audits with the cost block produce a DIFFERENT hash (by design —
+   * the cost data is part of the attestation surface).
+   */
+  cost?: CostAggregates;
 }
 
 /** Outer envelope — presentation metadata, NOT hashed (v0.1.3 F6 + v0.1.5 in-toto alignment). */

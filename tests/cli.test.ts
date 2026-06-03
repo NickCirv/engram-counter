@@ -481,6 +481,91 @@ describe("runEngramCounter (E2E via fixture)", () => {
     assert.equal(r.value.audit.mode, "dev"); // because no_binary_hash: true
   });
 
+  // v0.2 Step 5b gate — back-compat byte-identity + opt-in (closes a review finding)
+  it("v0.1 invocation (model:null, cacheless data) emits NO cost block — back-compat", () => {
+    const base = {
+      baseline: join(FIX, "baseline-10q.jsonl"),
+      active: join(FIX, "active-10q.jsonl"),
+      cost_per_million: null,
+      model: null, // production v0.1 behavior
+      no_binary_hash: true,
+      thresholds: { workload_absent_fail_closed: 0.01, mismatch_warn: 0.1, mismatch_high: 0.5, count_skew_warn: 0.5 },
+      baseline_file_label: "baseline-10q.jsonl",
+      active_file_label: "active-10q.jsonl",
+      pretty: false,
+    };
+    const r1 = runEngramCounter(base, { counter_version: "0.0.1" });
+    const r2 = runEngramCounter(base, { counter_version: "0.0.1" });
+    if (!r1.ok || !r2.ok) throw new Error("expected ok");
+    // No cost block on cacheless data with no --model → v0.1 surface preserved.
+    assert.equal("cost" in r1.value.audit, false);
+    // Byte-identical hash across runs (reproducibility contract).
+    assert.equal(r1.value.audit_trail_hash, r2.value.audit_trail_hash);
+  });
+
+  it("explicit cache:0 rows with no --model emit NO cost block (nonzero-gate, code-review fix)", () => {
+    // A row carrying "cache_read_tokens": 0 is economically identical to v0.1.x
+    // cacheless input → must NOT flip the gate / diverge the hash.
+    const { mkdtempSync, writeFileSync, rmSync } = require("node:fs") as typeof import("node:fs");
+    const { tmpdir } = require("node:os") as typeof import("node:os");
+    const dir = mkdtempSync(join(tmpdir(), "ec-cache0-"));
+    try {
+      const base = `{"query_id":"q1","timestamp":"2026-05-30T00:00:00Z","tokens_sent":1000,"tokens_received":100,"cache_read_tokens":0,"cache_creation_tokens":0,"workload":"refactor"}\n`;
+      const act = `{"query_id":"q1","timestamp":"2026-05-30T00:00:00Z","tokens_sent":500,"tokens_received":50,"cache_read_tokens":0,"cache_creation_tokens":0,"workload":"refactor"}\n`;
+      const bp = join(dir, "b.jsonl"), ap = join(dir, "a.jsonl");
+      writeFileSync(bp, base); writeFileSync(ap, act);
+      const r = runEngramCounter(
+        {
+          baseline: bp, active: ap, cost_per_million: null, model: null,
+          no_binary_hash: true,
+          thresholds: { workload_absent_fail_closed: 0.01, mismatch_warn: 0.1, mismatch_high: 0.5, count_skew_warn: 0.5 },
+          baseline_file_label: "b.jsonl", active_file_label: "a.jsonl", pretty: false,
+        },
+        { counter_version: "0.0.1" },
+      );
+      if (!r.ok) throw new Error("expected ok");
+      assert.equal("cost" in r.value.audit, false, "explicit cache:0 must not emit a cost block without --model");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("--model opt-in emits a cost block AND changes the hash (gate fires)", () => {
+    const withModel = runEngramCounter(
+      {
+        baseline: join(FIX, "baseline-10q.jsonl"),
+        active: join(FIX, "active-10q.jsonl"),
+        cost_per_million: null,
+        model: "claude-sonnet-4-6",
+        no_binary_hash: true,
+        thresholds: { workload_absent_fail_closed: 0.01, mismatch_warn: 0.1, mismatch_high: 0.5, count_skew_warn: 0.5 },
+        baseline_file_label: "baseline-10q.jsonl",
+        active_file_label: "active-10q.jsonl",
+        pretty: false,
+      },
+      { counter_version: "0.0.1" },
+    );
+    const noModel = runEngramCounter(
+      {
+        baseline: join(FIX, "baseline-10q.jsonl"),
+        active: join(FIX, "active-10q.jsonl"),
+        cost_per_million: null,
+        model: null,
+        no_binary_hash: true,
+        thresholds: { workload_absent_fail_closed: 0.01, mismatch_warn: 0.1, mismatch_high: 0.5, count_skew_warn: 0.5 },
+        baseline_file_label: "baseline-10q.jsonl",
+        active_file_label: "active-10q.jsonl",
+        pretty: false,
+      },
+      { counter_version: "0.0.1" },
+    );
+    if (!withModel.ok || !noModel.ok) throw new Error("expected ok");
+    assert.equal("cost" in withModel.value.audit, true);
+    assert.equal(withModel.value.audit.cost?.model, "claude-sonnet-4-6");
+    // cost block is part of the attestation surface → hash differs by design.
+    assert.notEqual(withModel.value.audit_trail_hash, noModel.value.audit_trail_hash);
+  });
+
   it("computes cost_usd when --cost-per-million provided", () => {
     const r = runEngramCounter(
       {

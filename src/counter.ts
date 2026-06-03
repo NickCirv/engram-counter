@@ -10,6 +10,7 @@
  */
 
 import type {
+  CostAggregates,
   LogEntry,
   MatchedQuery,
   MismatchSeverity,
@@ -17,6 +18,12 @@ import type {
   QueryDiff,
   TokenAggregates,
 } from "./types.js";
+import {
+  calculateCost,
+  DEFAULT_MODEL,
+  PRICING_VERSION,
+  type ModelPricing,
+} from "./pricing.js";
 
 /**
  * Compute basis points (= percent × 100) of saved tokens.
@@ -208,6 +215,117 @@ export function aggregateByWorkload(
   }
 
   return result;
+}
+
+/**
+ * v0.2 — Aggregate USD cost across matched queries using cache-aware pricing.
+ *
+ * Mirrors aggregateTokens() but computes dollars using the Anthropic pricing
+ * snapshot. Each row's cost = (input × rate) + (cache_read × rate × 0.1) +
+ * (cache_creation × rate × 1.25) + (output × output_rate). Rows without
+ * cache fields contribute zero to cache totals — v0.1.x JSONL back-compat
+ * preserved.
+ *
+ * Reproducibility: USD floats rounded to 4dp at boundary so JCS canonical
+ * form is stable across platforms (Node 18/20/22/24, Bun). Cents-precision
+ * (2dp) is enough for marketing display; 4dp leaves headroom for fractional
+ * cents without losing information.
+ *
+ * @param matched - paired baseline+active queries
+ * @param pricing - model pricing snapshot from pricing.ts (e.g., PRICING_2026_05["claude-sonnet-4-6"])
+ * @param meta - pricing provenance embedded in the result for auditability;
+ *   defaults to DEFAULT_MODEL + PRICING_VERSION when omitted
+ * @returns CostAggregates with provenance + baseline/active/saved/saved_pct + cache totals
+ */
+export function aggregateCost(
+  matched: readonly MatchedQuery[],
+  snapshot: Readonly<Record<string, ModelPricing>>,
+  opts?: { defaultModel?: string; pricing_version?: string },
+): CostAggregates {
+  const defaultModel = opts?.defaultModel ?? DEFAULT_MODEL;
+  const modelsSeen = new Set<string>();
+  let baseline_cost = 0;
+  let active_cost = 0;
+  let cache_read_total = 0;
+  let cache_creation_total = 0;
+
+  // Price each row by ITS OWN model (per-row fix). A JSONL mixing models is
+  // priced correctly per row instead of mis-stamped at one CLI-chosen SKU.
+  //
+  // STRICT per-row resolution (code-review fix 2026-05-30): a row's own `model`
+  // must exist in the snapshot, else THROW. We do NOT fall back to defaultModel
+  // for an explicit-but-unknown row model — silent fallback would (a) mis-price
+  // the row at the cheap default and report a FABRICATED saving, and (b) stamp
+  // provenance with a SKU absent from the pricing table, so an auditor cannot
+  // reproduce the number. Only a MISSING model field uses defaultModel (which
+  // is itself validated: CLI checks --model, DEFAULT_MODEL is in the snapshot).
+  const priceRow = (row: LogEntry): number => {
+    const model = row.model ?? defaultModel;
+    const pricing = snapshot[model];
+    if (pricing === undefined) {
+      throw new Error(
+        `aggregateCost: row model "${model}" is not in the pricing snapshot — ` +
+          `cannot price or attest. Add it to the snapshot or fix the JSONL.`,
+      );
+    }
+    modelsSeen.add(model); // record what was ACTUALLY priced, after resolution
+    return calculateCost(row, pricing);
+  };
+
+  for (const m of matched) {
+    baseline_cost += priceRow(m.baseline);
+    active_cost += priceRow(m.active);
+    cache_read_total +=
+      (m.baseline.cache_read_tokens ?? 0) + (m.active.cache_read_tokens ?? 0);
+    cache_creation_total +=
+      (m.baseline.cache_creation_tokens ?? 0) +
+      (m.active.cache_creation_tokens ?? 0);
+  }
+
+  // Round USD to 4dp at output boundary for cross-platform JCS hash stability.
+  const baseline_cost_usd = round4(baseline_cost);
+  const active_cost_usd = round4(active_cost);
+  // saved from RAW accumulators (not already-rounded values) — avoids the
+  // double-rounding drift an independent review measured (~25% of pairs off by 1e-4).
+  const saved_cost_usd = round4(baseline_cost - active_cost);
+
+  // saved_pct from RAW baseline — only exactly 0 when there is genuinely no
+  // baseline cost. A tiny-but-nonzero baseline yields a real signed pct instead
+  // of being masked to 0 (which contradicted a negative saved_cost_usd).
+  const saved_pct =
+    baseline_cost === 0
+      ? 0
+      : round2(((baseline_cost - active_cost) / baseline_cost) * 100);
+
+  // Provenance: single model if uniform, else "mixed" (per-row truth lives in
+  // the raw JSONL model fields). Empty input -> defaultModel for a stable stamp.
+  const model =
+    modelsSeen.size === 0
+      ? defaultModel
+      : modelsSeen.size === 1
+        ? [...modelsSeen][0]!
+        : "mixed";
+
+  return {
+    model,
+    pricing_version: opts?.pricing_version ?? PRICING_VERSION,
+    baseline_cost_usd,
+    active_cost_usd,
+    saved_cost_usd,
+    saved_pct,
+    cache_read_total,
+    cache_creation_total,
+  };
+}
+
+/** Round to 4 decimal places (USD precision for hash stability). */
+function round4(n: number): number {
+  return Math.round(n * 10000) / 10000;
+}
+
+/** Round to 2 decimal places (percentage display precision). */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 /**

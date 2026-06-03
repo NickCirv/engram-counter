@@ -22,11 +22,11 @@ On the committed 100-query fixture (`tests/fixtures/baseline-100q.jsonl` + `acti
 | fingerprint_match | true |
 | **audit_trail_hash** | `sha256:b0f8e4030dcfb91c27a3faf647e8fe061cbfd67bb707671d5331e8186b518819` |
 
-Cost projection at $5/M tokens (Anthropic Sonnet typical): **$11.45 saved per session** → **~$418K/year at 100-dev daily scale**.
+When you pass a `--cost-per-million` rate, the tool also outputs a USD cost projection (shown here for the synthetic fixture, illustrating the computation). This is *what the tool computes from the inputs you give it* — **your real number comes from running it on your own logs, not from any figure on this page.**
 
 Verify it yourself in three commands — see `bench/100q-summary.md`.
 
-> **Procurement honesty:** the 100q fixture is SYNTHETIC. engramx v4.0 measured 89.1% on REAL workloads (documented in v4.0 release notes). The 100q fixture verifies engram-counter's correct behavior, NOT engram's real-world savings.
+> **Procurement honesty:** the 100q fixture is SYNTHETIC — it exists only to verify that engram-counter produces a deterministic, tamper-evident `audit_trail_hash` on a known input. It is **not** a measurement of engram's savings, and `engram-counter` makes **no claim** about what engram saves. (engram's published "~89%" is a *per-file structural compression ratio* on its own codebase — a structural metric, not a real-workload agent-cost benchmark.) The only savings number that matters is the one this tool computes on **your** logs.
 
 ---
 
@@ -46,7 +46,7 @@ The output is independently verifiable. Re-run the same inputs on a different ma
 
 ## Why it exists
 
-EngramX claims 89.1% token reduction. That number means nothing if no one can check it.
+Any vendor's savings percentage means nothing if no one can independently check it.
 
 The conventional way to audit a vendor's savings claim is to ingest your data into the vendor's dashboard and trust their math. `engram-counter` inverts this: the math is open source, the tool runs on your machine, and the output is cryptographically verifiable against the inputs you control.
 
@@ -240,8 +240,8 @@ Patents: the Apache 2.0 patent grant covers the algorithm and methodology descri
 
 ## Status
 
-**v0.1.0 SHIPPED — production-ready.** 294/294 tests passing across 62 suites. 5 source modules (counter/types/schema/parser/hash/cli). Independently security-reviewed per core module + benchmark. 24 P0 attacks closed during build. Two golden hashes locked (10q + 100q fixtures).
+**v0.2.0 SHIPPED — production-ready.** 357/357 tests passing. 6 source modules (counter/types/schema/parser/hash/cli/pricing). Independently security-reviewed per core module + benchmark. 24 P0 attacks closed during build. Golden hashes locked for both the v0.1 cacheless attestation (unchanged — byte-identical) and the new v0.2 cost-bearing attestation.
 
 Reproducibility verified: triple-run subprocess produces byte-identical `audit_trail_hash` across invocations. The 100q fixture is committed + the deterministic generator script ships in the npm tarball — anyone can regenerate fixtures and recompute hash for procurement-grade verification.
 
-Next: v0.2 streaming parser + cross-impl JCS test against `cyberphone/json-canonicalization` Go reference (defensive depth, no new attack defenses required).
+**New in v0.2 — cache-aware cost accounting:** optional `cache_read_tokens` / `cache_creation_tokens` on log rows, a frozen version-stamped Anthropic pricing snapshot, and an optional `cost` block priced per-row by each row's own `model`. v0.1.x JSONL parses unchanged and a cacheless run with no `--model` emits no cost block — so its `audit_trail_hash` stays byte-identical to v0.1. See CHANGELOG.
