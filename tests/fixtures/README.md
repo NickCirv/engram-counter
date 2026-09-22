@@ -1,31 +1,16 @@
-# engram-counter test fixtures
+# Counter fixtures
 
-## 10-query happy-path fixture
+The JSONL fixtures provide synthetic inputs for parser, aggregation and CLI tests. They are not usage records from customers or evidence of measured savings.
 
-`baseline-10q.jsonl` + `active-10q.jsonl` are designed to produce **exactly 90.00% saved_pct** across all aggregates (total + per-workload). The math is hand-verified to land on whole basis-points.
+The historical 10-query pair is `baseline-10q.jsonl` and `active-10q.jsonl`. Preserve fixture bytes when changing documentation: tests can depend on row identity, ordering and counts. The documentation acquisition did not include JSONL payloads, so their numerical totals were not independently recomputed here.
 
-### Workload distribution
+## Test coverage to inspect
 
-| Workload | Queries | Baseline tokens | Active tokens | Saved % |
-|---|---|---|---|---|
-| refactor | 3 (q_001-q_003) | 156,000 | 15,600 | 90.00% |
-| debug | 3 (q_004-q_006) | 94,500 | 9,450 | 90.00% |
-| feature_add | 4 (q_007-q_010) | 293,050 | 29,305 | 90.00% |
-| **TOTAL** | **10** | **543,550** | **54,355** | **90.00%** |
+- `parser.test.ts` and `parser-cache-fields.test.ts`: input validation and cache fields.
+- `counter.test.ts` and `counter-cost.test.ts`: aggregation and cost handling.
+- `hash.test.ts` and `hash-v0.2-cost.test.ts`: deterministic digest behavior.
+- `cli.test.ts` and `integration.test.ts`: command-level expectations.
 
-### BigInt math verification (per SPEC v0.1.3 F9)
+Run the package's declared test command after installing and building under its supported Node version (manifest: `>=20.18`). No Node-version matrix, Bun compatibility, expected percentage or passing result is asserted by this review.
 
-- `saved_total = 543550 - 54355 = 489195`
-- `basis_points = (BigInt(489195) * 10000n) / BigInt(543550) = 9000n`
-- `saved_pct = 9000 / 100 = 90.00`
-
-Exact integer division — no IEEE 754 drift. Same result on Node 18/20/22/Bun.
-
-### Future fixtures
-
-- `baseline-zero.jsonl` — empty file (test exit 2)
-- `baseline-zero-tokens.jsonl` — all queries have 0 tokens (test exit 3)
-- `baseline-negative.jsonl` — negative `tokens_sent` (test C5 clamp + anomalies field)
-- `baseline-malformed.jsonl` — bad JSONL lines (test parser skip + warn)
-- `baseline-fortune100.jsonl` — 2000-dev × 365-day scale (test F9 BigInt overflow safety)
-- `unicode-terminators.jsonl` — uses U+2028 / U+2029 / U+0085 / U+000C (test F10)
+[Package scripts](https://github.com/NickCirv/engram-counter/blob/c95e418caade2e3ee04695a3cd2e3519520a9dfa/package.json) · [Parser tests](https://github.com/NickCirv/engram-counter/blob/c95e418caade2e3ee04695a3cd2e3519520a9dfa/tests/parser.test.ts)
