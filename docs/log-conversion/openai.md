@@ -16,7 +16,7 @@ This is synthetic input, not a captured provider response. `query_id` must ident
 
 Optional `cache_read_tokens` and `cache_creation_tokens` are parsed separately. The cost calculation charges `tokens_sent` as ordinary input **and adds** both cache categories. If the export's input count already includes cached tokens, passing that total plus cache fields double-counts cost. Verify the export's semantics and derive disjoint categories before cost calculation. Reject missing or contradictory usage instead of replacing it with zero.
 
-The raw token aggregate sums `tokens_sent + tokens_received`; it does not add the separate cache fields. Therefore cost-oriented disjoint categories do not simultaneously represent a cache-inclusive total-token comparison. State which metric the conversion supports and retain a separately derived total if required. This source behavior is a limitation to resolve before interpreting cache-heavy comparisons.
+The raw token aggregate sums `tokens_sent + tokens_received`; it does not add the separate cache fields. This is a defined metric, not an accident: token totals measure uncached traffic, and cache traffic is reported separately (`cache_read_total` / `cache_creation_total` in the cost block). For a Chat Completions-shaped export, `prompt_tokens` includes `prompt_tokens_details.cached_tokens` (see the provider's prompt caching documentation), so the correct mapping is `tokens_sent = prompt_tokens - cached_tokens` and `cache_read_tokens = cached_tokens`. `tests/provider-examples.test.ts` proves this mapping prices each token exactly once and quantifies the double-count the naive mapping produces.
 
 ## Conversion review
 

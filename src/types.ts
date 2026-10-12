@@ -1,5 +1,5 @@
 /**
- * engram-counter v0.1.0 type definitions.
+ * engram-counter type definitions.
  * Maps directly to SPEC v0.1.5 schema (internal spec, not shipped).
  *
  * Architecture foundations (post-comprehensive-audit):
@@ -199,11 +199,44 @@ export interface Warning {
   readonly context?: LogContext;
 }
 
-/** A single LLM call event in JSONL log format. */
+/**
+ * A single LLM call event in JSONL log format.
+ *
+ * METRIC SEMANTICS — DISJOINT TOKEN CATEGORIES (the input contract):
+ * the four token fields are mutually exclusive buckets; no token may be
+ * counted in more than one of them.
+ *
+ *   - `tokens_sent`            = UNCACHED input tokens only
+ *   - `cache_read_tokens`      = input tokens served from provider cache
+ *   - `cache_creation_tokens`  = input tokens written to provider cache
+ *   - `tokens_received`        = output tokens
+ *
+ * Downstream math relies on this: token aggregates (counter.ts
+ * aggregateTokens/diffQueries/aggregateByWorkload) sum tokens_sent +
+ * tokens_received (uncached traffic only; cache categories are reported
+ * separately as CostAggregates.cache_read_total / cache_creation_total),
+ * while cost (pricing.ts calculateCost) prices all four categories at
+ * their own rates. With disjoint inputs every token is priced exactly
+ * once; if a converter passes an input total that ALREADY includes
+ * cached tokens plus the cache fields, cost double-counts.
+ *
+ * Provider mapping (see docs/log-conversion/):
+ *   - Anthropic Messages API: `usage.input_tokens` already EXCLUDES
+ *     cache_read_input_tokens / cache_creation_input_tokens, so fields
+ *     map 1:1 (platform.claude.com/docs/en/build-with-claude/prompt-caching).
+ *   - OpenAI Chat Completions: `usage.prompt_tokens` INCLUDES
+ *     `prompt_tokens_details.cached_tokens`, so converters MUST subtract:
+ *     tokens_sent = prompt_tokens - cached_tokens
+ *     (platform.openai.com/docs/guides/prompt-caching).
+ *
+ * Enforced by example in tests/provider-examples.test.ts.
+ */
 export interface LogEntry {
   query_id: string;
   timestamp: string; // ISO-8601 UTC
+  /** UNCACHED input tokens only — must NOT include either cache category. */
   tokens_sent: number;
+  /** Output tokens. */
   tokens_received: number;
   workload?: string;
   model?: string;

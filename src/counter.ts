@@ -1,5 +1,5 @@
 /**
- * engram-counter v0.1.0 — core math primitives.
+ * engram-counter — core math primitives.
  *
  * All percentage math goes through BigInt intermediate per SPEC v0.1.3 F9
  * to avoid Number.MAX_SAFE_INTEGER (2^53) overflow at Fortune-100 scale.
@@ -116,6 +116,17 @@ export function diffQueries(matched: readonly MatchedQuery[]): QueryDiff[] {
 
 /**
  * Aggregate token totals across matched queries.
+ *
+ * METRIC DEFINITION: token totals are UNCACHED traffic —
+ * baseline_total / active_total = Σ(tokens_sent + tokens_received).
+ * Cache categories (cache_read_tokens / cache_creation_tokens) are
+ * deliberately EXCLUDED here and surfaced separately as
+ * CostAggregates.cache_read_total / cache_creation_total, where they are
+ * also priced at their own rates. The two metrics answer different
+ * questions: token totals = "how much uncached traffic moved";
+ * cost = "what did ALL categories cost". This is sound only because the
+ * LogEntry contract (types.ts) requires the four categories to be
+ * disjoint — see tests/provider-examples.test.ts.
  *
  * Returns deterministic zeros for empty input — caller responsibility to interpret
  * "zero baseline" as a meaningful condition (e.g., exit code 3 at the CLI layer).

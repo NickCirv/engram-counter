@@ -16,7 +16,7 @@ This is synthetic input, not a captured provider response. `query_id` must ident
 
 Optional `cache_read_tokens` and `cache_creation_tokens` are parsed separately. The cost calculation charges `tokens_sent` as ordinary input **and adds** both cache categories. If the export's input count already includes cached tokens, passing that total plus cache fields double-counts cost. Verify the export's semantics and derive disjoint categories before cost calculation. Reject missing or contradictory usage instead of replacing it with zero.
 
-The raw token aggregate sums `tokens_sent + tokens_received`; it does not add the separate cache fields. Therefore cost-oriented disjoint categories do not simultaneously represent a cache-inclusive total-token comparison. State which metric the conversion supports and retain a separately derived total if required. This source behavior is a limitation to resolve before interpreting cache-heavy comparisons.
+The raw token aggregate sums `tokens_sent + tokens_received`; it does not add the separate cache fields. This is a defined metric, not an accident: token totals measure uncached traffic, and cache traffic is reported separately (`cache_read_total` / `cache_creation_total` in the cost block). An Anthropic Messages API usage block keeps the four categories disjoint (`input_tokens` excludes `cache_read_input_tokens` and `cache_creation_input_tokens` per the provider's prompt caching documentation), so the fields map 1:1 onto the JSONL contract. `tests/provider-examples.test.ts` demonstrates the mapping and asserts each category is priced exactly once.
 
 ## Conversion review
 

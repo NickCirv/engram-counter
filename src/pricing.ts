@@ -93,6 +93,15 @@ export function resolvePricing(
  * FinOps-correct cost calculation for a single JSONL row.
  * Sums input + cache_read (× 0.1) + cache_create (× 1.25) + output.
  *
+ * REQUIRES disjoint token categories (LogEntry contract in types.ts):
+ * `tokens_sent` must be the UNCACHED input count. If a converter passes a
+ * provider input total that already includes cached tokens (e.g. OpenAI
+ * Chat Completions `prompt_tokens`, which includes
+ * `prompt_tokens_details.cached_tokens`) together with cache fields, the
+ * cached tokens are charged twice — once at full input rate inside
+ * tokens_sent and again at the cache rate. Subtract before converting.
+ * Proven by tests/provider-examples.test.ts.
+ *
  * All token fields are treated as optional (default 0) to preserve
  * v0.1.x JSONL back-compat: rows without cache fields get cache=0
  * and reduce to the v0.1.x formula (input × rate + output × output_rate).
