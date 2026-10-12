@@ -1,5 +1,5 @@
 /**
- * engram-counter v0.1.0 — JCS canonicalization + SHA-256 + audit envelope assembly.
+ * engram-counter — JCS canonicalization + SHA-256 + audit envelope assembly.
  *
  * THE TRUST-ANCHOR MODULE. The `audit_trail_hash` produced here is what:
  *   - Cosign / Sigstore signs (npm publish --provenance attaches a transparency entry)

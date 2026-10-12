@@ -1,5 +1,5 @@
 /**
- * engram-counter v0.1.0 — CLI entry orchestrator.
+ * engram-counter — CLI entry orchestrator.
  *
  * Reads baseline + active JSONL via parser, joins by query_id via counter,
  * computes fingerprint, assembles audit, emits JCS-canonical AuditOutput JSON.

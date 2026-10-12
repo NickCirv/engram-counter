@@ -1,5 +1,5 @@
 /**
- * engram-counter v0.1.0 — JSONL parser + workload fingerprint.
+ * engram-counter — JSONL parser + workload fingerprint.
  *
  * Implements SPEC v0.1.3 §S2 (parser hard limits) + §F10 (Unicode line terminator
  * normalization) + §F1 redesigned workload fingerprint + §C5 (negative token clamping).

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * engram-counter CLI entry — v0.1.0 production.
+ * engram-counter CLI entry.
  *
  * Thin stub that delegates to the compiled cli.js. All argv parsing, F7/F8
  * exit logic, audit assembly, and JCS hashing live in dist/cli.js.

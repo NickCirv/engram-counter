@@ -4,7 +4,8 @@
 
 | Version | Status | Notes |
 |---------|--------|-------|
-| **v0.1.x** | TBD upon v0.1.0 release | First production-ready release |
+| **v0.2.x** | Supported | Current release line (cache-aware cost accounting) |
+| v0.1.x | Security fixes only | First production-ready release line |
 | v0.0.x   | **Scaffold only** | NOT for production use |
 
 ## Threat Model

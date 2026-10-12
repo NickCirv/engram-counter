@@ -5,9 +5,11 @@
  * This is the `main` referenced by package.json; without it, the npm package
  * ships with no programmatic entry point.
  *
- * v0.0.1 — math primitives (counter.ts, types.ts).
- * v0.1.0 (in progress) — schema (schema.ts) + parser (parser.ts).
- * v0.1.0 ship requires: hash.ts (JCS + audit_trail_hash) + cli.ts (argv + exits).
+ * Module history:
+ *   v0.0.1 — math primitives (counter.ts, types.ts).
+ *   v0.1.0 — schema (schema.ts) + parser (parser.ts) + hash.ts (JCS +
+ *            audit_trail_hash) + cli.ts (argv + exits). Shipped 2026-05.
+ *   v0.2.0 — cache-aware cost accounting (pricing.ts). Shipped 2026-05.
  */
 
 export * from "./counter.js";

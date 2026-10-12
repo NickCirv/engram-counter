@@ -2,6 +2,19 @@
 
 All notable changes to `engram-counter` are documented in this file. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **CI workflow (`.github/workflows/ci.yml`):** runs typecheck + the full test suite + build on every push/PR to main (Node 20/22/24), regenerates the 100q fixtures into a temp dir and diffs them against the committed files, and verifies the benchmark `audit_trail_hash`. Previously the only workflow was Release, so the Actions tab showed nothing but the two failed May 2026 tag runs (v0.1.0: `npm test` glob failure fixed later in 0.1.1; v0.1.1: tests green, publish step failed; raw logs have since expired).
+- **Provider-shaped metric-semantics tests (`tests/provider-examples.test.ts`):** Anthropic-shaped (disjoint categories, 1:1 map) and OpenAI Chat Completions-shaped (`prompt_tokens` includes `cached_tokens`; converter must subtract) examples proving each token is priced exactly once and quantifying the exact double-count a cache-inclusive input total produces. Suite grows 357 → 365.
+- **`scripts/generate-fixture.js [outputDir]`:** optional output-directory argument so the reproducibility check can regenerate WITHOUT overwriting the committed fixtures.
+
+### Fixed
+- **Bench self-diff bug:** `bench/100q-summary.md` "How to reproduce" diffed a committed fixture against itself (always exit 0, proves nothing). Now regenerates into `mktemp -d` and diffs regenerated vs committed; the same check runs in CI.
+- **Stale benchmark record:** `bench/100q-benchmark.json` + the documented `audit_trail_hash` were captured with `counter_version: 0.0.1`; the hashed audit block includes `counter_version`, so v0.2.0 deterministically produces `sha256:21c7cb0d...` on the identical fixtures (token totals and saved_pct unchanged). Benchmark record regenerated under v0.2.0; cost expectation corrected `11.4481` → `11.44809` (actual CLI output).
+- **Metric semantics made explicit:** the `LogEntry` contract (src/types.ts) now states the four token fields are disjoint categories; token aggregates = uncached traffic (`tokens_sent + tokens_received`), cache traffic reported separately in the cost block; `calculateCost()` documents the double-count hazard of cache-inclusive input totals. `docs/methodology.md` + both log-conversion guides updated from "limitation to resolve" to the defined contract.
+- **Stale v0.1.0 strings:** source file headers, `bin/engram-counter.js`, `src/index.ts` module history, and the `SECURITY.md` supported-versions table no longer claim v0.1.0 as current.
+
 ## [0.2.0] — 2026-06-01 — "Cache-Aware Cost Accounting"
 
 ### Added (v0.2 — cache-aware cost accounting)
