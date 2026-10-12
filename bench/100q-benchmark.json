@@ -1,6 +1,6 @@
 {
   "envelope": {
-    "computed_at": "2026-05-21T14:33:12.417Z",
+    "computed_at": "2026-10-12T19:01:52.273Z",
     "audit_id": "audit-100q-flagship-bench",
     "reproducible_mode": true,
     "ingestion_contract": "v1",
@@ -8,10 +8,10 @@
     "predicateType": "https://cirvgreen.com/engram-counter/Attestation/v1",
     "schema_url": "https://raw.githubusercontent.com/NickCirv/engram-counter/main/schemas/ingestion-contract-v1.schema.json"
   },
-  "audit_trail_hash": "sha256:b0f8e4030dcfb91c27a3faf647e8fe061cbfd67bb707671d5331e8186b518819",
+  "audit_trail_hash": "sha256:21c7cb0dc6a29e3406fa656bf8f145c8e5b88e66f683f7f64000dda2ff960b3b",
   "audit": {
     "version": "0.1.0",
-    "counter_version": "0.0.1",
+    "counter_version": "0.2.0",
     "mode": "dev",
     "methodology": "paired-run",
     "inputs": {

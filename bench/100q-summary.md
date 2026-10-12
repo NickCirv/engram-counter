@@ -16,7 +16,7 @@
 | **saved_pct** | **85.45%** |
 | matched_queries | 100 / 100 (full overlap) |
 | fingerprint_match | true (set-mismatch defense passes) |
-| **audit_trail_hash** | `sha256:b0f8e4030dcfb91c27a3faf647e8fe061cbfd67bb707671d5331e8186b518819` |
+| **audit_trail_hash** | `sha256:21c7cb0dc6a29e3406fa656bf8f145c8e5b88e66f683f7f64000dda2ff960b3b` |
 
 **Cost projection at $5/M tokens** (illustrative — what the tool computes from *this synthetic fixture's* numbers, not a real-world claim): $11.45 for the fixture. Your real figure comes from your own logs.
 
@@ -42,10 +42,17 @@
 
 ### Verify the fixtures are byte-identical to what's committed
 
+Regenerate into a temporary directory, then diff the regenerated files against
+the committed ones. (An earlier revision of this section diffed a committed
+file against itself, which proves nothing; this version is the real check and
+runs in CI on every push.)
+
 ```bash
-node scripts/generate-fixture.js
-diff <(cat tests/fixtures/baseline-100q.jsonl) <(cat tests/fixtures/baseline-100q.jsonl)
-# (Exit 0 = identical)
+OUT=$(mktemp -d)
+node scripts/generate-fixture.js "$OUT"
+diff "$OUT/baseline-100q.jsonl" tests/fixtures/baseline-100q.jsonl
+diff "$OUT/active-100q.jsonl"   tests/fixtures/active-100q.jsonl
+# (Exit 0 on both = regenerated output is byte-identical to the committed fixtures)
 ```
 
 The generator uses LCG seed **1729** (Hardy-Ramanujan number, documented in `scripts/generate-fixture.js`). Same seed + same algorithm = same fixtures across Node versions.
@@ -60,10 +67,13 @@ node bin/engram-counter.js \
   --no-binary-hash
 ```
 
-Expected `audit_trail_hash`:
+Expected `audit_trail_hash` (engram-counter v0.2.0; the hashed `audit` block
+includes `counter_version`, so the hash is version-specific — the original
+2026-05-21 capture ran with `counter_version: 0.0.1` and produced
+`sha256:b0f8e403...` on the same fixtures, superseded by this value):
 
 ```
-sha256:b0f8e4030dcfb91c27a3faf647e8fe061cbfd67bb707671d5331e8186b518819
+sha256:21c7cb0dc6a29e3406fa656bf8f145c8e5b88e66f683f7f64000dda2ff960b3b
 ```
 
 Run this command three times — you will get identical output bytes for the `audit_trail_hash` field every time. This is the procurement-grade reproducibility contract.
@@ -79,7 +89,7 @@ node bin/engram-counter.js \
   --no-binary-hash | jq '.audit.cost_usd'
 ```
 
-Expected: `11.4481`
+Expected: `11.44809`
 
 ---
 
@@ -119,7 +129,7 @@ Expected: `11.4481`
 - **Seed:** 1729 (Hardy-Ramanujan number)
 - **Fixtures committed:** `tests/fixtures/baseline-100q.jsonl` + `tests/fixtures/active-100q.jsonl`
 - **Full audit JSON:** `bench/100q-benchmark.json` (also committed)
-- **Golden hash test:** `tests/integration.test.ts` (locks the audit_trail_hash; CI fails on drift)
-- **Date:** 2026-05-21
-- **Spec version:** engram-counter v0.1.0-pre1
+- **Golden hash locks:** `tests/integration.test.ts` locks the 10q pipeline hash; `.github/workflows/ci.yml` regenerates the 100q fixtures, diffs them against the committed files, and verifies this benchmark's `audit_trail_hash` on every push
+- **Date:** 2026-05-21 (fixtures + token numbers); hash and cost re-verified 2026-10-12 under v0.2.0
+- **Spec version:** engram-counter v0.2.0 (originally captured under v0.1.0-pre1; same fixtures, same token totals, new envelope hash)
 - **engramx referenced version:** v4.0.0 (npm `engramx@4.0.0`)

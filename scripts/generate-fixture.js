@@ -14,7 +14,17 @@
  * procurement-relevant scale.
  *
  * Usage:
- *   node scripts/generate-fixture.js
+ *   node scripts/generate-fixture.js [outputDir]
+ *
+ * With no argument, writes to tests/fixtures/ (the committed location).
+ * Pass a directory (e.g. a mktemp -d path) to regenerate WITHOUT touching
+ * the committed fixtures, then diff the two — that is the independent
+ * reproducibility check:
+ *
+ *   OUT=$(mktemp -d)
+ *   node scripts/generate-fixture.js "$OUT"
+ *   diff "$OUT/baseline-100q.jsonl" tests/fixtures/baseline-100q.jsonl
+ *   diff "$OUT/active-100q.jsonl"   tests/fixtures/active-100q.jsonl
  *
  * Then verify:
  *   node bin/engram-counter.js \
@@ -26,8 +36,8 @@
 
 "use strict";
 
-const { writeFileSync } = require("node:fs");
-const { join } = require("node:path");
+const { writeFileSync, existsSync, statSync } = require("node:fs");
+const { join, resolve } = require("node:path");
 
 // ════════════════════════════════════════════════════════════════════
 // Deterministic LCG (Linear Congruential Generator)
@@ -153,7 +163,20 @@ for (const wl of WORKLOADS) {
 // Write JSONL files
 // ════════════════════════════════════════════════════════════════════
 
-const FIXTURES_DIR = join(__dirname, "..", "tests", "fixtures");
+// Optional CLI arg: write fixtures to a caller-chosen directory instead of
+// the committed tests/fixtures/. Enables the self-contained reproducibility
+// check (regenerate to tmp, diff against committed) without any overwrite.
+const outArg = process.argv[2];
+const FIXTURES_DIR = outArg
+  ? resolve(outArg)
+  : join(__dirname, "..", "tests", "fixtures");
+
+if (outArg && (!existsSync(FIXTURES_DIR) || !statSync(FIXTURES_DIR).isDirectory())) {
+  process.stderr.write(
+    `Error: output directory does not exist or is not a directory: ${FIXTURES_DIR}\n`,
+  );
+  process.exit(2);
+}
 
 function toJsonl(entries) {
   return entries.map((e) => JSON.stringify(e)).join("\n") + "\n";
