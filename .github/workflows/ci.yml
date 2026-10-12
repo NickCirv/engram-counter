@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Typecheck + Test + Build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Verify dist/ builds
+        run: |
+          test -f dist/index.js || (echo "FAIL: dist/index.js missing after build" && exit 1)
+          test -f dist/counter.js || (echo "FAIL: dist/counter.js missing after build" && exit 1)
+          test -f dist/types.js || (echo "FAIL: dist/types.js missing after build" && exit 1)
+
+  fixture-reproducibility:
+    name: Fixture + golden hash reproducibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Regenerate fixtures to a temp dir and diff against committed
+        run: |
+          OUT=$(mktemp -d)
+          node scripts/generate-fixture.js "$OUT"
+          diff "$OUT/baseline-100q.jsonl" tests/fixtures/baseline-100q.jsonl
+          diff "$OUT/active-100q.jsonl" tests/fixtures/active-100q.jsonl
+      - name: Verify the benchmark audit_trail_hash reproduces
+        run: |
+          HASH=$(node bin/engram-counter.js \
+            --baseline tests/fixtures/baseline-100q.jsonl \
+            --active tests/fixtures/active-100q.jsonl \
+            --audit-id audit-100q-flagship-bench \
+            --no-binary-hash | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).audit_trail_hash))")
+          EXPECTED="sha256:21c7cb0dc6a29e3406fa656bf8f145c8e5b88e66f683f7f64000dda2ff960b3b"
+          echo "computed: $HASH"
+          test "$HASH" = "$EXPECTED" || (echo "FAIL: audit_trail_hash drifted" && exit 1)

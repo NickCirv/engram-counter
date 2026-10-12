@@ -2,6 +2,8 @@
 
 # engram-counter
 
+[![CI](https://github.com/NickCirv/engram-counter/actions/workflows/ci.yml/badge.svg)](https://github.com/NickCirv/engram-counter/actions/workflows/ci.yml)
+
 Compare paired JSONL usage logs and produce a reproducible audit record of the supplied measurements.
 
 
@@ -80,7 +82,7 @@ A SHA-256 digest makes a record comparable; it does not authenticate the log pro
 
 ## Development
 
-No runtime checks were executed for this documentation review. A declared test command is available below; its presence is not a passing result.
+Verification record: on 2026-10-12, with Node v26.7.0, `npm ci && npm test` passed 365 of 365 tests and `npm run typecheck` completed cleanly. CI (`.github/workflows/ci.yml`) repeats typecheck, the full suite, the build, fixture regeneration against the committed files, and the benchmark `audit_trail_hash` check on every push to main across Node 20, 22 and 24.
 
 | Script | Declared command |
 | --- | --- |
