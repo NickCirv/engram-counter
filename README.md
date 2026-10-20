@@ -7,38 +7,6 @@
 Compare paired JSONL usage logs and produce a reproducible audit record of the supplied measurements.
 
 
-
-
-
-
-
-
-
-
-
-
-<a id="why-it-exists"></a>
-
-<a id="compile-from-source-recommended-for-procurement-audits"></a>
-
-<a id="generating-compatible-logs"></a>
-
-<a id="generating-query_id"></a>
-
-<a id="converting-llm-provider-logs"></a>
-
-<a id="sample-run-real-output-from-committed-100q-fixture"></a>
-
-<a id="scope"></a>
-
-<a id="methodology"></a>
-
-<a id="hash-algorithm-agility"></a>
-
-<a id="project-links"></a>
-
-<a id="status"></a>
-
 ## What it does
 
 Joins baseline and active entries by query_id, aggregates token differences and workload consistency, and hashes a canonical audit block. Optional model pricing includes cache fields; strict mode also fingerprints the built files and package manifest. See the pinned [implementation](https://github.com/NickCirv/engram-counter/blob/c95e418caade2e3ee04695a3cd2e3519520a9dfa/bin/engram-counter.js).
@@ -48,20 +16,31 @@ Joins baseline and active entries by query_id, aggregates token differences and 
 
 ## Quickstart
 
-Node requirement from the inspected manifest: **`>=20.18.0`**. Requires Node >=20.18.0 and a source build. The fixture paths exist in the pinned tree, but JSONL payloads were outside this capture filter; the example was not executed. Exit 0 is a clean audit, 5 a partial warning, 6 a failed audit, 2 usage and 1 internal error.
+The package is published on npm as `engram-counter` (latest 0.2.0), so no build step is required to try it. Node >=20.18.0. Exit 0 is a clean audit, 5 a partial warning, 6 a failed audit, 2 usage and 1 internal error.
 
-The following example is **source-inspected, not executed**. It uses a pinned checkout; npm package publication is not assumed. Replace project paths or provide the stated input fixtures before running it.
+The example below was executed on 2026-10-20 against the two committed 100-query fixtures, copied into an empty directory so npx resolves the published package rather than a local checkout:
+
+```bash
+npx engram-counter@0.2.0 \
+  --baseline baseline-100q.jsonl \
+  --active active-100q.jsonl \
+  --audit-id local-fixture-review --pretty
+```
+
+It exits 0 and reports 100 matched queries, 2,289,618 saved tokens (85.45 percent of 2,679,451 baseline tokens) and `audit_trail_hash: sha256:9d72f90ad26be5b379ef9d3c5300eac6ef4b9ae1aab857b5949b3a3cdecada67`. The hash is reproducible for this `--audit-id` and these two input files; change either and it changes.
+
+For a procurement audit that needs to read the code it runs, build from source instead:
 
 ```bash
 git clone https://github.com/NickCirv/engram-counter.git
 cd engram-counter
-git checkout c95e418caade2e3ee04695a3cd2e3519520a9dfa
-npm install --ignore-scripts
+npm ci
 npm run build
+npm test
 node bin/engram-counter.js --baseline tests/fixtures/baseline-100q.jsonl --active tests/fixtures/active-100q.jsonl --audit-id local-fixture-review --pretty
 ```
 
-Dependencies are installed with lifecycle scripts disabled in this recipe. Read the package scripts before enabling any lifecycle step required by your environment.
+Read the package scripts before enabling any lifecycle step your environment requires.
 
 ## Usage and reference
 
@@ -82,7 +61,7 @@ A SHA-256 digest makes a record comparable; it does not authenticate the log pro
 
 ## Development
 
-Verification record: on 2026-10-12, with Node v26.7.0, `npm ci && npm test` passed 365 of 365 tests and `npm run typecheck` completed cleanly. CI (`.github/workflows/ci.yml`) repeats typecheck, the full suite, the build, fixture regeneration against the committed files, and the benchmark `audit_trail_hash` check on every push to main across Node 20, 22 and 24.
+Verification record: on 2026-10-12, with Node v26.7.0, `npm ci && npm test` passed 365 of 365 tests and `npm run typecheck` completed cleanly. CI (`.github/workflows/ci.yml`) repeats typecheck, the full suite, the build, fixture regeneration against the committed files, and the benchmark `audit_trail_hash` check on every push to main across Node 20, 22, 24 and 26.
 
 | Script | Declared command |
 | --- | --- |

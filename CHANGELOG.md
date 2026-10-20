@@ -52,7 +52,7 @@ First production release. Single squashed commit on `main` (`2e90a93`).
   - Cryptographic primitives table
   - Schema contract (frozen at v1) reference
   - F-numbered hardening cross-reference (F1-F13)
-  - Full adversarial review history (24 P0 attacks closed across 4 independent module reviews)
+  - Full adversarial review history (24 P0 findings closed before release)
   - 6 open questions for v0.2 (documented defensive-depth gaps)
 - `docs/log-conversion/anthropic.md` (~270 lines) — covers:
   - Claude API direct (`/v1/messages`)
@@ -87,12 +87,12 @@ First production release. Single squashed commit on `main` (`2e90a93`).
 - Subprocess --help + --version + 10q + 100q + strict mode + cost projection + error paths all work
 - Documentation references the canonical CLI hash (sha256:b0f8e4030dcfb91c27a3faf647e8fe061cbfd67bb707671d5331e8186b518819) — committed reproducibility lock
 
-### NEXT TURN — Nick's 2FA publish step
+### Release steps for v0.1.0 (completed)
 - Bump `package.json` version from `0.0.1` → `0.1.0`
 - Run `npm run build && npm test` (final pre-publish triple-audit)
 - `git tag v0.1.0 && git push origin v0.1.0`
 - `gh release create v0.1.0` with full CHANGELOG body
-- `npm publish` via Nick's 2FA → ships with Sigstore --provenance attestation
+- `npm publish` with two-factor authentication, shipping the Sigstore --provenance attestation
 - `npm view engram-counter@0.1.0` — verify the public registry hash
 
 ### Added — flagship 100q benchmark + golden hash + reproducibility (2026-05-21)
@@ -122,7 +122,7 @@ First production release. Single squashed commit on `main` (`2e90a93`).
 - Updated `src/index.ts` barrel to export cli surface
 
 ### Security — cli.ts adversarial security hardenings
-Adversarial security review (adversarial 0.55 BLOCK / code-quality 0.88 / earlier verifier). Adversarial found 3 P0s — ALL patched before commit:
+Adversarial security review found 3 P0 issues, ALL patched before commit:
 - **adv-cli-01 — Forged audit_id via `--audit-id ec_<12hex>`:** The envelope-linkage check was bypassed whenever `reproducible_mode=true`, which the CLI sets whenever `--audit-id` is provided. An attacker passing `--audit-id ec_aaaaaaaaaaaa` forged an audit with a derived-looking ID that verifyAuditTrailHash skipped checking. **Fix:** (a) CLI now rejects `--audit-id` values matching `^ec_[0-9a-f]{12}$` (reserved prefix); (b) hash.ts verifyAuditTrailHash now enforces linkage **regardless of reproducible_mode** whenever `audit_id` starts with `ec_`. User-provided labels (no `ec_` prefix) skip the check as designed.
 - **adv-cli-02 — `binary_sha256` only hashed `.js` files** allowing fork to inject `.mjs`/`.cjs`/`.node`/postinstall.sh that Node's module resolution still loads. **Fix:** computeBinarySha256 now hashes ALL regular files in dist/, no extension filter. Polyglot file injection defeated.
 - **adv-cli-03 — Empty-input audit silently exited 0** ("no-evidence" forgery): two empty (or non-overlapping) JSONL files produced `saved_total=0` + `fingerprint_match=true` (empty sets equal) + exit 0. Procurement could be fooled into "audit passed" without checking the numbers. **Fix:** determineExitCode returns 6 whenever `matched_queries=0 AND baseline_only_queries=0 AND active_only_queries=0` (zero entries = insufficient evidence).
@@ -150,7 +150,7 @@ Adversarial security review (adversarial 0.55 BLOCK / code-quality 0.88 / earlie
 - **GOLDEN HASH LOCKED:** `sha256:f5fe2b17396a6e4ec5583162f20774188f66eca72b22d16df5f75da67052a88f` for the 10q fixture pipeline. Any future drift = regression that MUST be acknowledged in changelog.
 
 ### Security — hash.ts adversarial security hardenings
-Adversarial security review (adversarial 0.78 BLOCK / correctness 0.91 / testing 0.62 BLOCK-V0.1.0) found 6 P0 issues. All patched before commit:
+Adversarial security review found 6 P0 issues. All patched before commit:
 - **Lone surrogate collision (Adversarial P0-1+P0-2 / Correctness C2)** — `jcsString` emitted raw lone surrogates which Node's UTF-8 encoder replaced with U+FFFD, enabling SHA-256 collisions between distinct lone-surrogate inputs + RFC 8785 divergence from Go/Java reference impls. Fixed: detect unpaired high/low surrogates, escape as `\uXXXX` per JSON.stringify convention.
 - **Non-plain-object degeneration (Adversarial P0-3 / Correctness C1)** — `Date`, `Map`, `Set`, `Buffer`, `RegExp`, class instances all `typeof === "object"` with empty `Object.keys()` would silently canonicalize to `"{}"` (data loss) or array of byte values (Buffer). Fixed: `Object.getPrototypeOf(value) !== Object.prototype && proto !== null` throws.
 - **No fixture→AuditOutput E2E (Testing P0 #1+#2+#3)** — modules tested in isolation; the seam where 99% of production bugs hide was untested. Fixed: tests/integration.test.ts reads fixtures, runs parse→join→aggregate→fingerprint→hash, asserts saved_pct=90, fingerprint_match=true, byte-identical reproducibility across 2 invocations.
@@ -170,7 +170,7 @@ Adversarial security review (adversarial 0.78 BLOCK / correctness 0.91 / testing
 - 63 new tests on parser + fingerprint (147/147 total passing)
 
 ### Security — parser.ts adversarial security hardenings
-Adversarial security review (adversarial 0.78 / code 0.83 / sec 0.88) found 6 P0 attack vectors. All patched before commit:
+Adversarial security review found 6 P0 attack vectors. All patched before commit:
 - **P0-1A** — Fingerprint join-character collision: attacker exploits legal `:` / `|` characters in `query_id` / `workload` to forge set-equivalence. Fixed via `JSON.stringify([id, workload])` tuples + `\n`-join (cryptographically infeasible collision).
 - **P0-2A** — Token MAX_SAFE_INTEGER smuggling: `tokens_sent: 9007199254740993` (2^53+1) silently loses precision in JSON.parse → off-by-one savings. Fixed via guard rejecting tokens beyond `±Number.MAX_SAFE_INTEGER`.
 - **P0-3A** — BOM-mediated SHA grinding: prepending stacked BOMs makes `file_sha256` adversary-controllable. Fixed via multi-BOM strip + new `normalized_content_sha256` field (auditor cross-checks both).
@@ -217,7 +217,7 @@ Procurement teams evaluating AI vendor savings claims need a way to verify those
 ### Added
 - Initial scaffold: LICENSE (Apache 2.0), README, package.json, tsconfig.json, CHANGELOG
 - Repository structure per SPEC v0.1.2 (src, tests, bin, docs, examples, .github)
-- v0.1.0 spec finalized after formal multi-reviewer audit (CONDITIONAL_PASS aggregate verdict, 6 P0 fixes applied to SPEC v0.1.2 before code starts)
+- v0.1.0 spec finalized after a formal pre-implementation audit (6 P0 fixes applied to SPEC v0.1.2 before code starts)
 
 [Unreleased]: https://github.com/NickCirv/engram-counter/compare/v0.1.1...HEAD
 [0.1.1]: https://github.com/NickCirv/engram-counter/releases/tag/v0.1.1
